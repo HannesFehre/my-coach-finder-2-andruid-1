@@ -1,17 +1,22 @@
 # Testing My Coach Finder Android App
 
+**Last Updated:** October 27, 2025
+**Platform:** Android Only
+**APK Size:** 4.7MB (debug)
+
+---
+
 ## APK Location
 
-Your debug APK has been successfully built:
 ```
 /home/liz/Desktop/Module/MyCoachFinder/app/andruid/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-**File Size:** 3.6MB
+---
 
-## Prerequisites for Testing
+## Prerequisites
 
-### 1. Enable USB Debugging on Your Android Device
+### 1. Enable USB Debugging on Android Device
 
 1. Go to **Settings** → **About Phone**
 2. Tap **Build Number** 7 times to enable Developer Mode
@@ -21,162 +26,127 @@ Your debug APK has been successfully built:
 
 ### 2. Connect Your Device
 
-1. Connect your Android phone to your Linux PC via USB cable
-2. On your phone, you'll see a prompt "Allow USB debugging?" → Tap **Allow**
-3. Check the checkbox "Always allow from this computer" for convenience
+1. Connect Android phone to Linux PC via USB
+2. On phone: Tap **Allow** on "Allow USB debugging?" prompt
+3. Check "Always allow from this computer" for convenience
 
 ### 3. Verify Connection
 
-Run this command to verify your device is connected:
 ```bash
 export ANDROID_HOME=~/android-sdk
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 adb devices
 ```
 
-You should see output like:
+Expected output:
 ```
 List of devices attached
 ABC123XYZ    device
 ```
 
-If you see "unauthorized", check your phone for the USB debugging prompt and tap "Allow".
+---
 
 ## Installation Methods
 
 ### Method 1: Install via ADB (Recommended)
 
-From the project root directory:
-
 ```bash
-# Navigate to the project
 cd /home/liz/Desktop/Module/MyCoachFinder/app/andruid
-
-# Install the APK on your connected device
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The `-r` flag allows reinstalling if the app is already installed.
+Expected output: `Success`
 
-Expected output:
-```
-Performing Streamed Install
-Success
-```
+### Method 2: For MIUI/Xiaomi Devices
 
-### Method 2: Copy APK to Phone
+USB installation may be blocked by MIUI security:
 
-If ADB doesn't work, you can manually copy the APK:
-
-1. Copy the APK to your phone:
 ```bash
-adb push android/app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/
+# Push APK to Downloads folder
+adb push android/app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/MyCoachFinder.apk
+
+# Then on phone:
+# Open File Manager → Downloads → Tap MyCoachFinder.apk → Install
 ```
 
-2. On your phone:
-   - Open **Files** or **My Files** app
-   - Navigate to **Downloads**
-   - Tap on `app-debug.apk`
-   - Tap **Install** (you may need to enable "Install from Unknown Sources")
+### Method 3: Manual Transfer
 
-### Method 3: Email/Cloud Transfer
+1. Copy APK to phone via USB/Email/Cloud
+2. Open the APK file on phone
+3. Tap **Install**
 
-1. Email the APK to yourself or upload to Google Drive/Dropbox
-2. Download on your phone
-3. Open the downloaded APK file
-4. Tap **Install**
+---
 
 ## Testing Checklist
 
-Once installed, test the following features:
-
-### ✓ Basic Functionality
+### Basic Functionality
 - [ ] App launches without crashing
-- [ ] Splash screen appears briefly
-- [ ] Web app loads at `https://app.my-coach-finder.com/go`
-- [ ] No blank white screen
-- [ ] No error messages
+- [ ] Web app loads: `https://app.my-coach-finder.com/go`
+- [ ] No blank screen or errors
+- [ ] Navigation works correctly
+- [ ] Back button functions properly
 
-### ✓ Navigation
-- [ ] All links work correctly
-- [ ] Back button navigates within the web app
-- [ ] Pages load without errors
-- [ ] Images and assets load properly
-
-### ✓ Authentication
-- [ ] Can access login page
-- [ ] Google OAuth login works
-- [ ] LinkedIn OAuth login works
-- [ ] Apple Sign-In works (if applicable)
-- [ ] Login session persists after closing app
+### Native Google Authentication
+- [ ] Click "Continue with Google" button
+- [ ] Native account picker appears
+- [ ] Select Google account
+- [ ] Authentication completes successfully
+- [ ] Redirected to home page after login
+- [ ] Session persists after closing app
+- [ ] Session persists after app restart
 - [ ] Logout works correctly
 
-### ✓ Performance
-- [ ] Pages load reasonably fast
+### Performance
+- [ ] Pages load quickly
 - [ ] Scrolling is smooth
 - [ ] No lag or stuttering
-- [ ] App doesn't consume excessive battery
+- [ ] Acceptable battery usage
 
-### ✓ Permissions
-- [ ] Internet access works
-- [ ] Network state detection works
-- [ ] No unnecessary permission requests
-
-### ✓ Data Storage
-- [ ] Login state persists after app restart
-- [ ] User preferences are saved
+### Data Storage
+- [ ] Login state persists after restart
 - [ ] localStorage works correctly
-- [ ] Cookies are maintained
+- [ ] Session tokens maintained
+
+---
 
 ## Common Issues & Solutions
 
-### Issue: "Installation blocked"
+### "Installation blocked"
 **Solution:** Enable "Install from Unknown Sources"
-1. Settings → Security → Unknown Sources → Enable
-2. Or tap "Settings" on the install prompt to enable for this install only
+- Settings → Security → Unknown Sources → Enable
 
-### Issue: "App not installed"
-**Solution:** Uninstall the old version first
+### "App not installed"
+**Solution:** Uninstall old version first
 ```bash
 adb uninstall com.mycoachfinder.app
 adb install android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Issue: "Device unauthorized"
+### "Device unauthorized"
 **Solution:**
-1. Revoke USB debugging authorizations on your phone
-2. Disconnect and reconnect the USB cable
-3. Accept the USB debugging prompt again
+1. Revoke USB debugging authorizations on phone
+2. Disconnect and reconnect USB
+3. Accept USB debugging prompt
 
-### Issue: "ADB device not found"
-**Solution:**
+### "ADB device not found"
 ```bash
-# Restart ADB server
 adb kill-server
 adb start-server
 adb devices
 ```
 
-### Issue: App shows blank white screen
-**Solution:**
-1. Check internet connection on your phone
-2. Try accessing `https://app.my-coach-finder.com/go` in Chrome to verify it loads
-3. Check logcat for errors:
+### Blank white screen
+1. Check internet connection
+2. Verify `https://app.my-coach-finder.com/go` loads in browser
+3. Check logs: `adb logcat | grep -i "capacitor\|error"`
+
+### Google Sign-In fails
+**Solution:** Clear Google Play Services cache
 ```bash
-adb logcat | grep -i "capacitor\|webview\|error"
+adb shell pm clear com.google.android.gms
 ```
 
-### Issue: OAuth login doesn't work
-**Possible causes:**
-- OAuth redirect URIs not configured for the app
-- WebView blocking third-party cookies
-- Need to whitelist the app package ID in OAuth provider settings
-
-**Debug:**
-```bash
-# View real-time logs
-adb logcat | grep -i "oauth\|auth"
-```
+---
 
 ## Debugging Tools
 
@@ -184,6 +154,9 @@ adb logcat | grep -i "oauth\|auth"
 ```bash
 # All logs
 adb logcat
+
+# Filter for authentication
+adb logcat | grep -E "(NativeAuth|Native Bridge)"
 
 # Filter for Capacitor
 adb logcat | grep Capacitor
@@ -195,25 +168,15 @@ adb logcat | grep -E "ERROR|FATAL"
 adb logcat -c && adb logcat
 ```
 
-### Take Screenshot
-```bash
-adb shell screencap /sdcard/screenshot.png
-adb pull /sdcard/screenshot.png ~/Desktop/
-```
-
-### Screen Recording
-```bash
-# Record for 60 seconds
-adb shell screenrecord /sdcard/demo.mp4 --time-limit 60
-
-# Stop recording (Ctrl+C)
-
-# Download the video
-adb pull /sdcard/demo.mp4 ~/Desktop/
-```
+### Chrome DevTools Remote Debugging
+1. Open app on phone
+2. On PC: Open Chrome and go to `chrome://inspect`
+3. Click **Inspect** on the WebView
+4. Debug HTML/CSS/JavaScript
+5. View console logs
+6. Monitor network requests
 
 ### Clear App Data
-If you need to reset the app completely:
 ```bash
 adb shell pm clear com.mycoachfinder.app
 ```
@@ -223,42 +186,41 @@ adb shell pm clear com.mycoachfinder.app
 adb uninstall com.mycoachfinder.app
 ```
 
+### Take Screenshot
+```bash
+adb shell screencap /sdcard/screenshot.png
+adb pull /sdcard/screenshot.png ~/Desktop/
+```
+
+### Screen Recording
+```bash
+adb shell screenrecord /sdcard/demo.mp4 --time-limit 60
+# Stop with Ctrl+C
+adb pull /sdcard/demo.mp4 ~/Desktop/
+```
+
+---
+
 ## Performance Monitoring
 
-### Check App Memory Usage
+### Memory Usage
 ```bash
 adb shell dumpsys meminfo com.mycoachfinder.app
 ```
 
-### Check Battery Usage
+### Battery Usage
 ```bash
 adb shell dumpsys batterystats com.mycoachfinder.app
 ```
 
-### Monitor Network Activity
+### Network Activity
 ```bash
 adb shell dumpsys netstats com.mycoachfinder.app
 ```
 
-## Remote Debugging
-
-You can debug the WebView content using Chrome DevTools:
-
-1. On your phone, open the My Coach Finder app
-2. On your PC, open Google Chrome
-3. Navigate to `chrome://inspect`
-4. You should see your device and the WebView listed
-5. Click **Inspect** to open DevTools
-6. Now you can:
-   - Inspect HTML/CSS
-   - Debug JavaScript
-   - View console logs
-   - Monitor network requests
-   - Test responsive design
+---
 
 ## Rebuilding After Changes
-
-If you make changes to the web assets or configuration:
 
 ```bash
 # Sync changes to Android
@@ -268,84 +230,118 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 
 # Reinstall on device
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Building Release APK (For Play Store)
+---
 
-When ready for production:
+## Authentication Flow Testing
 
+### Expected Flow
+```
+1. User opens app → Login page loads
+2. Click "Continue with Google" button
+3. Native account picker appears (NOT web OAuth)
+4. Select Google account
+5. ID token retrieved automatically
+6. Token sent to backend: /auth/google/native?id_token=XXX
+7. Backend returns JWT
+8. JWT stored in localStorage (key: 'token')
+9. User redirected to home page
+10. Session persists after app restart
+```
+
+### Success Indicators in Logs
 ```bash
-# Build release APK (unsigned)
-cd android && ./gradlew assembleRelease
-
-# Output location:
-# android/app/build/outputs/apk/release/app-release-unsigned.apk
+adb logcat | grep -E "(NativeAuth|Native Bridge)"
 ```
 
-For Play Store, you'll need to:
-1. Generate a signing key
-2. Sign the APK
-3. Optimize with `zipalign`
-4. Or use Android App Bundle (AAB) format
+Look for:
+- `[Native Bridge] Injecting native auth`
+- `[Native Bridge] Intercepted Google sign-in`
+- `NativeAuth: Starting Google Sign-In`
+- `NativeAuth: Sign-In successful`
+- `[Native Bridge] Backend response status: 200`
 
-See Google Play documentation for detailed release instructions.
+---
 
-## Next Steps After Testing
-
-Once basic testing is complete:
-
-1. **Firebase Push Notifications** - Set up FCM for push notifications
-2. **Enhanced Login** - Implement refresh tokens for longer sessions
-3. **Platform Analytics** - Add tracking to differentiate app vs web users
-4. **App Icon & Splash** - Create custom branding assets
-5. **Play Store Listing** - Prepare screenshots, description, and metadata
-6. **Beta Testing** - Share with select users via Google Play Console
-7. **Production Release** - Submit to Google Play Store
-
-## Testing Report Template
-
-After testing, document your findings:
+## Test Report Template
 
 ```markdown
-# Test Report - My Coach Finder Android App
+# Test Report - My Coach Finder Android
+
 **Date:** [Date]
-**Tester:** [Your Name]
+**Tester:** [Name]
 **Device:** [Phone Model]
-**Android Version:** [e.g., Android 13]
-**APK Version:** 1.0 (debug)
+**Android Version:** [Version]
+**APK Version:** 1.0.0 (debug)
 
 ## Test Results
 
 ### ✅ Passed
-- List features that work correctly
+- App launches successfully
+- Native Google Sign-In works
+- Session persistence works
+- [Add more...]
 
 ### ❌ Failed
-- List issues found with details
+- [List any failures with details]
 
-### ⚠️ Issues
-- List minor issues or improvements needed
+### ⚠️ Minor Issues
+- [List minor issues]
 
 ## Screenshots
 [Attach screenshots]
 
 ## Recommendations
-[Your suggestions for improvements]
+[Suggestions for improvements]
 ```
-
-## Support
-
-If you encounter issues:
-1. Check the logs using `adb logcat`
-2. Verify internet connectivity
-3. Ensure the web app URL is accessible
-4. Review AndroidManifest.xml permissions
-5. Check Capacitor configuration in `capacitor.config.json`
-
-For Capacitor-specific issues, see: https://capacitorjs.com/docs/debugging
 
 ---
 
-**Last Updated:** October 25, 2025
-**APK Built:** ✓ Successfully
-**Status:** Ready for testing on physical device
+## Building Release APK
+
+For production/Play Store:
+
+```bash
+# Build release APK
+cd android && ./gradlew assembleRelease
+
+# Output: android/app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+For Play Store submission:
+1. Generate signing key
+2. Sign the APK
+3. Use Android App Bundle (AAB) format
+4. See Google Play documentation
+
+---
+
+## Next Steps
+
+After testing is complete:
+
+1. **Production Release** - Build signed APK for Play Store
+2. **Firebase Setup** - Enable push notifications
+3. **Enhanced Auth** - Implement refresh tokens
+4. **Analytics** - Track app vs web usage
+5. **Beta Testing** - Share with select users
+6. **Play Store** - Submit to Google Play
+
+---
+
+## Support
+
+For issues:
+1. Check logs: `adb logcat`
+2. Verify internet connectivity
+3. Ensure web app URL is accessible
+4. Review `AndroidManifest.xml` permissions
+5. Check `capacitor.config.json` configuration
+
+**Capacitor Docs:** https://capacitorjs.com/docs/debugging
+
+---
+
+**Status:** Ready for Testing
