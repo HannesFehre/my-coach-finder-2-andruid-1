@@ -45,3 +45,10 @@ ios_distribution.*
 ios_development.*
 *_base64.txt
 *base64.txt
+
+# Android signing (NEVER commit these!)
+*.jks
+*.keystore
+key.jks
+keystore.properties
+gradle.properties

@@ -1,0 +1,35 @@
+{
+  "_comment": "This is a template file. Download your actual google-services.json from Firebase Console",
+  "_instructions": "1. Go to Firebase Console (https://console.firebase.google.com/)",
+  "_instructions2": "2. Select your project",
+  "_instructions3": "3. Go to Project Settings > General",
+  "_instructions4": "4. Download google-services.json for your Android app",
+  "_instructions5": "5. Replace this file with the downloaded google-services.json",
+  "project_info": {
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project-id.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "YOUR_MOBILE_SDK_APP_ID",
+        "android_client_info": {
+          "package_name": "app.mycoachfinder.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "YOUR_FIREBASE_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

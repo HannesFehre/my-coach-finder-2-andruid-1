@@ -20,3 +20,9 @@ org.gradle.jvmargs=-Xmx1536m
 # Android operating system, and which are packaged with your app's APK
 # https://developer.android.com/topic/libraries/support-library/androidx-rn
 android.useAndroidX=true
+
+# Android signing configuration
+# IMPORTANT: Copy this file to gradle.properties and replace with your actual passwords
+# gradle.properties is in .gitignore and will NOT be committed to GitHub
+KEYSTORE_PASSWORD=YOUR_PASSWORD_HERE
+KEY_PASSWORD=YOUR_PASSWORD_HERE
