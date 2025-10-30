@@ -104,8 +104,33 @@ User navigated to authenticated page
 
 ### OAuth Configuration
 - **Web Client ID:** `353309305721-ir55d3eiiucm5fda67gsn9gscd8eq146.apps.googleusercontent.com`
-- **Android Client:** Auto-detected via package name
+- **Android OAuth Client:** Registered in Google Cloud Console
+- **Package Name:** `app.mycoachfinder.app`
 - **SHA-1 Fingerprint:** `B0:F8:1D:C6:AE:7B:D7:B9:0C:9F:5D:41:E0:A3:1A:DA:39:37:4A:D1`
+
+### Native Google Sign-In Flow
+1. User clicks "Continue with Google" button (ID: `googleAuthBtn`)
+2. JavaScript intercepts click event and calls native SDK
+3. Native Android Google account picker appears
+4. User selects Google account
+5. App receives Google ID token
+6. POST request to `/auth/google/native` with:
+   ```json
+   {
+     "id_token": "eyJhbGci...",
+     "os": "android"
+   }
+   ```
+7. Backend verifies token and returns:
+   ```json
+   {
+     "access_token": "jwt-token",
+     "token_type": "bearer",
+     "user": {...}
+   }
+   ```
+8. App stores `access_token` in localStorage as `'token'`
+9. Redirects to `/coach/dashboard?os=android`
 
 ---
 

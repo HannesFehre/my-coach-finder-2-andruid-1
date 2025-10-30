@@ -1,5 +1,6 @@
-package com.mycoachfinder.app;
+package app.mycoachfinder.app;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -7,13 +8,45 @@ import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import com.getcapacitor.BridgeActivity;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
 
+    private GoogleSignInClient googleSignInClient;
+    private ActivityResultLauncher<Intent> googleSignInLauncher;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Register the native auth plugin
+        // Initialize Google Sign-In
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("353309305721-ir55d3eiiucm5fda67gsn9gscd8eq146.apps.googleusercontent.com")
+                .requestEmail()
+                .requestProfile()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        // Register activity result launcher for Google Sign-In
+        googleSignInLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            this::handleGoogleSignInResult
+        );
+
+        // Register the Google auth plugin (for fallback)
         registerPlugin(NativeAuthPlugin.class);
 
         super.onCreate(savedInstanceState);
@@ -43,21 +76,36 @@ public class MainActivity extends BridgeActivity {
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(this.bridge.getWebView(), true);
 
+        // Add JavaScript interface for native Google Sign-In
+        this.bridge.getWebView().addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void launch() {
+                runOnUiThread(() -> launchNativeGoogleSignIn());
+            }
+        }, "NativeGoogleSignIn");
+
         // Keep all navigation within the app - fully native experience
         this.bridge.getWebView().setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                // Everything stays in the WebView - no external browsers
-                view.loadUrl(url);
+                // Intercept Google OAuth and use native SDK instead
+                if (url.contains("/auth/google/login") || url.contains("accounts.google.com/o/oauth2")) {
+                    android.util.Log.d("MainActivity", "Intercepted Google OAuth URL, launching native sign-in");
+                    launchNativeGoogleSignIn();
+                    return true;
+                }
+                // Add os=andruid parameter to all app URLs
+                String urlWithOS = addOSParameter(url);
+                view.loadUrl(urlWithOS);
                 return true;
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Inject native auth bridge into the loaded page
-                injectNativeAuthBridge(view);
-                // Inject push notification registration script
+                // Inject button click interceptor for native Google Sign-In
+                injectGoogleButtonInterceptor(view);
+                // Inject push notifications
                 injectPushNotifications(view);
             }
         });
@@ -81,6 +129,133 @@ public class MainActivity extends BridgeActivity {
                 String url = data.toString();
                 this.bridge.getWebView().loadUrl(url);
             }
+        }
+    }
+
+    private String addOSParameter(String url) {
+        // Only add to app URLs, not external sites
+        if (!url.contains("my-coach-finder.com")) {
+            return url;
+        }
+
+        // Check if URL already has query parameters
+        if (url.contains("?")) {
+            // Add as additional parameter
+            return url + "&os=android";
+        } else {
+            // Add as first parameter
+            return url + "?os=android";
+        }
+    }
+
+    private void injectGoogleButtonInterceptor(WebView webView) {
+        String interceptorScript =
+            "(function(){" +
+            "  console.log('[Native] Injecting Google button interceptor');" +
+            "  " +
+            "  function interceptButton() {" +
+            "    const btn = document.getElementById('googleAuthBtn');" +
+            "    if (btn) {" +
+            "      console.log('[Native] Found Google button, adding interceptor');" +
+            "      btn.addEventListener('click', function(e) {" +
+            "        e.preventDefault();" +
+            "        e.stopPropagation();" +
+            "        e.stopImmediatePropagation();" +
+            "        console.log('[Native] Google button clicked, launching native SDK');" +
+            "        window.NativeGoogleSignIn.launch();" +
+            "        return false;" +
+            "      }, true);" +
+            "    } else {" +
+            "      console.log('[Native] Google button not found yet, retrying...');" +
+            "      setTimeout(interceptButton, 500);" +
+            "    }" +
+            "  }" +
+            "  " +
+            "  interceptButton();" +
+            "})();";
+
+        webView.evaluateJavascript(interceptorScript, null);
+    }
+
+    private void launchNativeGoogleSignIn() {
+        android.util.Log.d("MainActivity", "Launching native Google Sign-In");
+        // Sign out first to force account picker
+        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+            Intent signInIntent = googleSignInClient.getSignInIntent();
+            googleSignInLauncher.launch(signInIntent);
+        });
+    }
+
+    private void handleGoogleSignInResult(ActivityResult result) {
+        android.util.Log.d("MainActivity", "Google Sign-In result code: " + result.getResultCode());
+
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                String idToken = account.getIdToken();
+                android.util.Log.d("MainActivity", "Got ID token, sending to backend");
+
+                // Send token to backend in background thread
+                new Thread(() -> sendTokenToBackend(idToken)).start();
+
+            } catch (ApiException e) {
+                android.util.Log.e("MainActivity", "Sign-In failed: " + e.getMessage());
+            }
+        } else {
+            android.util.Log.d("MainActivity", "Sign-In cancelled");
+        }
+    }
+
+    private void sendTokenToBackend(String idToken) {
+        try {
+            URL url = new URL("https://app.my-coach-finder.com/auth/google/native");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+
+            // Send JSON body with id_token and os
+            String jsonBody = "{\"id_token\":\"" + idToken + "\",\"os\":\"android\"}";
+            OutputStream os = conn.getOutputStream();
+            os.write(jsonBody.getBytes("UTF-8"));
+            os.close();
+
+            int responseCode = conn.getResponseCode();
+            android.util.Log.d("MainActivity", "Backend response code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // Parse JSON response
+                String responseBody = response.toString();
+                android.util.Log.d("MainActivity", "Backend response: " + responseBody);
+
+                JSONObject jsonResponse = new JSONObject(responseBody);
+                String accessToken = jsonResponse.getString("access_token");
+                android.util.Log.d("MainActivity", "Got access token from backend");
+
+                // Store token and navigate to dashboard on UI thread
+                runOnUiThread(() -> {
+                    String script = "localStorage.setItem('token', '" + accessToken + "'); " +
+                                  "window.location.href = '/coach/dashboard?os=android';";
+                    this.bridge.getWebView().evaluateJavascript(script, null);
+                });
+            } else {
+                android.util.Log.e("MainActivity", "Backend error: " + responseCode);
+            }
+
+            conn.disconnect();
+        } catch (Exception e) {
+            android.util.Log.e("MainActivity", "Error sending token to backend: " + e.getMessage());
         }
     }
 
@@ -204,7 +379,7 @@ public class MainActivity extends BridgeActivity {
             // Call native Google Sign-In
             "console.log('[Native Bridge] Triggering native Google Sign-In...');" +
             "try{" +
-            "const result=await window.Capacitor.Plugins.NativeAuth.signInWithGoogle();" +
+            "const result=await window.Capacitor.Plugins.GoogleAuth.signInWithGoogle();" +
             "console.log('[Native Bridge] Native auth result:',result);" +
 
             "if(result&&result.idToken){" +

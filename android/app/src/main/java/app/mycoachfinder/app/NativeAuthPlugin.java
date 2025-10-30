@@ -1,4 +1,4 @@
-package com.mycoachfinder.app;
+package app.mycoachfinder.app;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -17,7 +17,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 
-@CapacitorPlugin(name = "NativeAuth")
+@CapacitorPlugin(name = "GoogleAuth")
 public class NativeAuthPlugin extends Plugin {
 
     private GoogleSignInClient googleSignInClient;
@@ -35,6 +35,12 @@ public class NativeAuthPlugin extends Plugin {
                 .build();
 
         googleSignInClient = GoogleSignIn.getClient(getActivity(), gso);
+    }
+
+    @PluginMethod
+    public void signIn(PluginCall call) {
+        // Alias for signInWithGoogle to match web app expectations
+        signInWithGoogle(call);
     }
 
     @PluginMethod
